@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  threadId  Int?
+  replyId   Int?
+  createdAt DateTime @default(now())
+  Reply     Reply?   @relation(fields: [replyId], references: [id])
+  Thread    Thread?  @relation(fields: [threadId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model Reply {
+  id        Int      @id @default(autoincrement())
+  content   String
+  image     String?
+  authorId  Int
+  threadId  Int
+  parentId  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Like      Like[]
+  User      User     @relation(fields: [authorId], references: [id])
+  Thread    Thread   @relation(fields: [threadId], references: [id])
+  Parent    Reply?   @relation("ReplyToReply", fields: [parentId], references: [id])
+  Children  Reply[]  @relation("ReplyToReply")
+  isDeleted Boolean  @default(false)
+}
+
+model Thread {
+  id        Int      @id @default(autoincrement())
+  content   String
+  authorId  Int
+  isDeleted Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  image     String?
+  Like      Like[]
+  Reply     Reply[]
+  User      User     @relation(fields: [authorId], references: [id])
+}
+
+model User {
+  id         Int          @id @default(autoincrement())
+  email      String       @unique
+  username   String       @unique
+  fullname   String?
+  password   String
+  profile    String?
+  background String?
+  bio        String?
+  isDeleted  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  Like       Like[]
+  Reply      Reply[]
+  Thread     Thread[]
+  follower   UserFollow[] @relation("follower")
+  following  UserFollow[] @relation("following")
+}
+
+model UserFollow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+  follower    User     @relation("follower", fields: [followerId], references: [id])
+  following   User     @relation("following", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
